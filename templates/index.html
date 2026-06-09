@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A simple poultry farm management system to track batches, egg production, and feed records." />
+  <title>Poultry Farm Management System</title>
+
+  <!-- Our custom CSS (served from the /static folder) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body>
+
+  <header>
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <span>🐔</span> Poultry Farm Manager
+      </div>
+      <nav class="nav-links">
+        <a href="#batch-section">Batches</a>
+        <a href="#egg-section">Eggs</a>
+        <a href="#feed-section">Feed</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ── Page Title ─────────────────────────── -->
+    <h1 style="font-size:1.5rem; font-weight:700; margin-bottom:0.25rem;">
+      Dashboard
+    </h1>
+    <p class="text-muted mb-0">Track your poultry batches, egg production, and feed consumption.</p>
+
+    <br />
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-box {{ category }}">
+            {% if category == 'success' %}✅{% else %}⚠️{% endif %}
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="stats-grid">
+
+      <div class="stat-card">
+        <div class="stat-icon">🐣</div>
+        <div class="stat-info">
+          <div class="label">Total Batches</div>
+          <div class="value">{{ total_batches }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card accent">
+        <div class="stat-icon">🐔</div>
+        <div class="stat-info">
+          <div class="label">Total Birds</div>
+          <div class="value">{{ total_birds }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card teal">
+        <div class="stat-icon">🥚</div>
+        <div class="stat-info">
+          <div class="label">Total Eggs</div>
+          <div class="value">{{ total_eggs }}</div>
+        </div>
+      </div>
+
+      <div class="stat-card indigo">
+        <div class="stat-icon">🌾</div>
+        <div class="stat-info">
+          <div class="label">Total Feed (kg)</div>
+          <div class="value">{{ total_feed }}</div>
+        </div>
+      </div>
+
+    </div><!-- /stats-grid -->
+
+
+    <section id="batch-section">
+      <div class="split-layout">
+
+        <!-- ── Left: Add Batch Form ────────────────── -->
+        <div class="card">
+          <h2 class="section-title">🐣 Add New Batch</h2>
+
+          <form action="/add_batch" method="post" novalidate>
+
+            <div class="form-group">
+              <label for="breed">Breed Name</label>
+              <input
+                type="text"
+                id="breed"
+                name="breed"
+                placeholder="e.g. Broiler, Layer, Desi"
+                maxlength="100"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="quantity">Number of Birds</label>
+              <input
+                type="number"
+                id="quantity"
+                name="quantity"
+                placeholder="e.g. 500"
+                min="1"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="age">Age (weeks)</label>
+              <input
+                type="number"
+                id="age"
+                name="age"
+                placeholder="e.g. 4"
+                min="0"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              ➕ Add Batch
+            </button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">📋 Batch Records</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Breed</th>
+                  <th>Quantity</th>
+                  <th>Age (wks)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Loop over every batch row fetched from the DB -->
+                {% if batches %}
+                  {% for batch in batches %}
+                  <tr>
+                    <td>{{ batch['id'] }}</td>
+                    <td>
+                      <span class="badge badge-green">{{ batch['breed'] }}</span>
+                    </td>
+                    <td>{{ batch['quantity'] }}</td>
+                    <td>{{ batch['age'] }}</td>
+                    <td>
+                      <!-- Small delete form for this row -->
+                      <form action="/delete/batches/{{ batch['id'] }}" method="post"
+                            onsubmit="return confirm('Delete this batch?')">
+                        <button type="submit" class="btn btn-danger">🗑 Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="5" class="no-records">No batches added yet.</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div><!-- /table-wrap -->
+        </div>
+
+      </div><!-- /split-layout -->
+    </section>
+
+
+    <section id="egg-section">
+      <div class="split-layout">
+
+        <!-- ── Left: Add Egg Form ──────────────────── -->
+        <div class="card">
+          <h2 class="section-title">🥚 Add Egg Record</h2>
+
+          <form action="/add_egg" method="post" novalidate>
+
+            <div class="form-group">
+              <label for="egg_date">Date</label>
+              <input
+                type="date"
+                id="egg_date"
+                name="date"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="count">Egg Count</label>
+              <input
+                type="number"
+                id="count"
+                name="count"
+                placeholder="e.g. 350"
+                min="0"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              ➕ Add Record
+            </button>
+          </form>
+        </div>
+
+        <!-- ── Right: Egg Records Table ───────────── -->
+        <div class="card">
+          <h2 class="section-title">📋 Egg Production Records</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Eggs Collected</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if eggs %}
+                  {% for egg in eggs %}
+                  <tr>
+                    <td>{{ egg['id'] }}</td>
+                    <td>{{ egg['date'] }}</td>
+                    <td>
+                      <span class="badge badge-teal">{{ egg['count'] }} eggs</span>
+                    </td>
+                    <td>
+                      <form action="/delete/eggs/{{ egg['id'] }}" method="post"
+                            onsubmit="return confirm('Delete this egg record?')">
+                        <button type="submit" class="btn btn-danger">🗑 Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="no-records">No egg records added yet.</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div><!-- /table-wrap -->
+        </div>
+
+      </div><!-- /split-layout -->
+    </section>
+
+    <section id="feed-section">
+      <div class="split-layout">
+
+        <!-- ── Left: Add Feed Form ─────────────────── -->
+        <div class="card">
+          <h2 class="section-title">🌾 Add Feed Record</h2>
+
+          <form action="/add_feed" method="post" novalidate>
+
+            <div class="form-group">
+              <label for="feed_date">Date</label>
+              <input
+                type="date"
+                id="feed_date"
+                name="date"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="amount">Feed Amount (kg)</label>
+              <input
+                type="number"
+                id="amount"
+                name="amount"
+                placeholder="e.g. 25.5"
+                step="0.01"
+                min="0.01"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              ➕ Add Record
+            </button>
+          </form>
+        </div>
+
+        <!-- ── Right: Feed Records Table ──────────── -->
+        <div class="card">
+          <h2 class="section-title">📋 Feed Consumption Records</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Amount (kg)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if feeds %}
+                  {% for f in feeds %}
+                  <tr>
+                    <td>{{ f['id'] }}</td>
+                    <td>{{ f['date'] }}</td>
+                    <td>
+                      <span class="badge badge-amber">{{ f['amount'] }} kg</span>
+                    </td>
+                    <td>
+                      <form action="/delete/feed/{{ f['id'] }}" method="post"
+                            onsubmit="return confirm('Delete this feed record?')">
+                        <button type="submit" class="btn btn-danger">🗑 Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="no-records">No feed records added yet.</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>
+      <strong>Poultry Farm Management System</strong> &mdash;
+      Built with 🐍 Python Flask &amp; SQLite &nbsp;|&nbsp;
+      College Mini Project &nbsp;|&nbsp; 2024
+    </p>
+  </footer>
+
+</body>
+</html>
